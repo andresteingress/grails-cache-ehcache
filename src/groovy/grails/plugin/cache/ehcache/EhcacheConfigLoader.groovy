@@ -14,29 +14,39 @@
  */
 package grails.plugin.cache.ehcache
 
+import grails.plugin.cache.ConfigLoader
+import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.springframework.context.ApplicationContext
 import org.springframework.core.io.ByteArrayResource
-
-import grails.plugin.cache.ConfigLoader
-import grails.plugin.cache.ehcache.GrailsEhCacheManagerFactoryBean.ReloadableCacheManager
+import org.springframework.core.io.Resource
 
 /**
  * @author Burt Beckwith
  */
 class EhcacheConfigLoader extends ConfigLoader {
 
+    GrailsApplication grailsApplication
+
 	void reload(List<ConfigObject> configs, ApplicationContext ctx) {
 
-		EhcacheConfigBuilder builder = new EhcacheConfigBuilder()
-		for (ConfigObject co : configs) {
-			def config = co.config
-			if (config instanceof Closure) {
-				builder.parse config
-			}
-		}
+        GrailsEhCacheManagerFactoryBean grailsEhCacheManagerFactoryBean =
+            grailsApplication.mainContext.getBean('&ehcacheCacheManager') as GrailsEhCacheManagerFactoryBean
 
-		String xml = builder.toXml()
-		log.debug "Ehcache generated XML:\n$xml"
+        Resource resource = null
+
+        if (!hasEhCacheXmlFile())  {
+            EhcacheConfigBuilder builder = new EhcacheConfigBuilder()
+            for (ConfigObject co : configs) {
+                def config = co.config
+                if (config instanceof Closure) {
+                    builder.parse config
+                }
+            }
+
+            String xml = builder.toXml()
+            log.debug "Ehcache generated XML:\n$xml"
+            resource = new ByteArrayResource(xml.bytes)
+        }
 
 		GrailsEhcacheCacheManager cacheManager = ctx.grailsCacheManager
 
@@ -45,11 +55,12 @@ class EhcacheConfigLoader extends ConfigLoader {
 			cacheManager.destroyCache name
 		}
 
-		ReloadableCacheManager nativeCacheManager = cacheManager.cacheManager
-		nativeCacheManager.rebuild new ByteArrayResource(xml.bytes)
-
-		for (String cacheName in nativeCacheManager.cacheNames) {
-			cacheManager.getCache cacheName
-		}
+        grailsEhCacheManagerFactoryBean.rebuild(resource)
+        cacheManager.cacheManager = grailsEhCacheManagerFactoryBean.object
+        cacheManager.afterPropertiesSet()
 	}
+
+    boolean hasEhCacheXmlFile()  {
+        return grailsApplication.config.grails.cache.ehcache.ehcacheXmlLocation instanceof CharSequence
+    }
 }

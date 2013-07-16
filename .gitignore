@@ -2,5 +2,6 @@
 target
 *.log
 *.zip
+*.iml
 plugin.xml
 /docs/

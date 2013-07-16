@@ -55,18 +55,20 @@ class CacheEhcacheGrailsPlugin {
 
 		def cacheConfig = application.config.grails.cache
 		def ehcacheConfig = cacheConfig.ehcache
+        def sharedCacheManager = ehcacheConfig?.sharedCacheManager ?: false
 		def ehcacheConfigLocation
-		if (cacheConfig.config instanceof Closure || application.cacheConfigClasses) {
-			// leave the location null to indicate that the real configuration will
-			// happen in doWithApplicationContext (from the core plugin, using this
-			// plugin's grailsCacheConfigLoader)
-		}
-		else if (ehcacheConfig.ehcacheXmlLocation instanceof CharSequence) {
+
+        if (ehcacheConfig.ehcacheXmlLocation instanceof CharSequence) {
 			// use the specified location
 			ehcacheConfigLocation = ehcacheConfig.ehcacheXmlLocation
 			log.info "Using Ehcache configuration file $ehcacheConfigLocation"
-		}
-		else {
+
+        } else if (cacheConfig.config instanceof Closure || application.cacheConfigClasses) {
+            // leave the location null to indicate that the real configuration will
+            // happen in doWithApplicationContext (from the core plugin, using this
+            // plugin's grailsCacheConfigLoader)
+
+        } else {
 			// no config and no specified location, so look for ehcache.xml in the classpath,
 			// and fall back to ehcache-failsafe.xml in the Ehcache jar as a last resort
 			def ctx = springConfig.unrefreshedApplicationContext
@@ -83,9 +85,12 @@ class CacheEhcacheGrailsPlugin {
 
 		ehcacheCacheManager(GrailsEhCacheManagerFactoryBean) {
 			configLocation = ehcacheConfigLocation
+            shared = sharedCacheManager
 		}
 
-		grailsCacheConfigLoader(EhcacheConfigLoader)
+		grailsCacheConfigLoader(EhcacheConfigLoader) {
+            grailsApplication = ref('grailsApplication')
+        }
 
 		grailsCacheManager(GrailsEhcacheCacheManager) {
 			cacheManager = ref('ehcacheCacheManager')

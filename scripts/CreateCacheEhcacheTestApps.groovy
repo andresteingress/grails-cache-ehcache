@@ -92,7 +92,6 @@ private void copyProjectFiles() {
 	ant.copy(todir: "$testprojectRoot/grails-app/conf", overwrite: true) {
 		fileset(dir: projectfiles.path) {
 			include name: 'DataSource.groovy'
-			include name: 'UrlMappings.groovy'
 		}
 	}
 
