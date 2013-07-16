@@ -26,7 +26,7 @@ class CacheEhcacheGrailsPlugin {
 
 	private final Logger log = LoggerFactory.getLogger('grails.plugin.cache.CacheEhcacheGrailsPlugin')
 
-	String version = '1.0.0'
+	String version = '1.0.0.1'
 	String grailsVersion = '2.0 > *'
 	def loadAfter = ['cache']
 	def pluginExcludes = [
@@ -106,7 +106,6 @@ class CacheEhcacheGrailsPlugin {
 	}
 
 	private boolean isEnabled(GrailsApplication application) {
-		// TODO
-		true
+        return application.config.grails.cache?.enabled ?: false
 	}
 }
